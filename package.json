@@ -1,0 +1,39 @@
+{
+  "name": "task-devops-and-ci-cd",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.html",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "jest",
+    "start": "python3 -m http.server 8000 || python -m http.server 8000",
+    "build": "echo 'Build completed - Static HTML ready'",
+    "validate": "echo 'Validating HTML structure' && npm test"
+  },
+  "jest": {
+    "testEnvironment": "jsdom",
+    "setupFiles": ["<rootDir>/jest.setup.js"],
+    "testMatch": [
+      "**/__tests__/**/*.js",
+      "**/tests/**/*.js",
+      "**/?(*.)+(spec|test).js"
+    ],
+    "verbose": true
+  },
+  "keywords": [
+    "html",
+    "cicd",
+    "github-actions",
+    "devops",
+    "static-site"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "jest": "^30.0.5",
+    "jest-environment-jsdom": "^30.0.5",
+    "jsdom": "26.1.0"
+  }
+}

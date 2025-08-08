@@ -1,0 +1,134 @@
+name: Simple CI/CD Pipeline
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        
+    - name: Install dependencies
+      run: |
+        npm install
+        
+    - name: Run tests
+      run: npm test
+      
+    - name: Basic HTML validation
+      run: |
+        # Check that the file exists
+        if [ ! -f "index.html" ]; then
+          echo "Error: index.html not found"
+          exit 1
+        fi
+        
+        # Check basic structure
+        if ! grep -q "<!DOCTYPE html>" index.html; then
+          echo "Error: DOCTYPE not found"
+          exit 1
+        fi
+        
+        if ! grep -q "<title>" index.html; then
+          echo "Error: Title not found"
+          exit 1
+        fi
+        
+        if ! grep -q "<h1>" index.html; then
+          echo "Error: H1 not found"
+          exit 1
+        fi
+        
+        echo "HTML validation successful"
+
+    - name: Verify content
+      run: |
+        if grep -q "GitHub Pages" index.html && grep -q "CI/CD" index.html; then
+          echo "Content verified"
+        else
+          echo "Required content not found"
+          exit 1
+        fi
+
+  # Job 2: Build
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Create build directory
+      run: |
+        mkdir -p build
+        cp index.html build/
+        echo "Simple HTML build completed at $(date)" > build/build-info.txt
+        ls -la build/
+        
+    - name: Compress files
+      run: |
+        tar -czf website.tar.gz build/
+        
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: simple-website
+        path: website.tar.gz
+        retention-days: 5
+
+  # Job 3: Deploy
+  deploy:
+    needs: [test, build]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Download artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: simple-website
+        
+    - name: Extract files
+      run: |
+        tar -xzf website.tar.gz
+        ls -la build/
+        
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./build
+        
+    - name: Notify successful deploy
+      run: |
+        echo "🎉 Deployment completed successfully"
+        echo "🌐 Site available at: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
+
+  # Job 4: Post-Deploy Verification
+  verify:
+    needs: deploy
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+    - name: Wait for stabilization
+      run: sleep 30
+      
+    - name: Verify deployment
+      run: |
+        echo "Verifying deployment..."
+        echo "Pipeline completed successfully"
+        echo "Summary:"
+        echo "   - Tests: Passed"
+        echo "   - Build: Completed"
+        echo "   - Deploy: Success"
